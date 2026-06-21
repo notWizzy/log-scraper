@@ -1,0 +1,9 @@
+# Build artifacts
+bin/
+
+# Test logs
+*.log
+!testdata/*.log
+
+# OS files
+.DS_Store

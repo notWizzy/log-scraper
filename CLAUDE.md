@@ -6,12 +6,43 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Log Scraper (aka "Log-Needle Finder" / "Dag-Doctor") — a fast Go CLI tool for parsing massive log files from distributed systems. Users pipe gigabytes of logs into it, and it uses Go concurrency to scan for known failure patterns (OOM kills, timeout regexes, database locks) and highlights where the root failure started in a clean Terminal UI.
 
+## Build & Run
+
+```bash
+make build            # Build to bin/logscraper
+make test             # Run tests with -race
+make bench            # Benchmark matcher/scanner
+make vet              # Go vet
+go run ./cmd/logscraper testdata/sample.log    # Quick run
+```
+
 ## Tech Stack
 
-- **Language:** Go
-- **UI:** Terminal UI (TUI) library (e.g. bubbletea/lipgloss)
-- **Pattern matching:** Regex-based failure pattern detection
-- **Concurrency:** Goroutines for parallel log scanning
+- **Language:** Go 1.26+
+- **TUI:** bubbletea v1 + lipgloss v1 (Charm ecosystem)
+- **Pattern matching:** Compiled `regexp.Regexp` (stdlib), concurrency-safe
+- **Concurrency:** Goroutine fan-out/fan-in with bounded channels
+
+## Architecture
+
+Streaming pipeline: `Reader → Scanner Pool → Matcher Pool → Aggregator → Analyzer → TUI`
+
+- `internal/model/` — shared types (LogEntry, Match, FailureChain, Severity, Category). Zero internal imports.
+- `internal/reader/` — file chunking (line-boundary aligned, 4MB min) and stdin streaming.
+- `internal/scanner/` — line scanning with `sync.Pool` buffer reuse. `numCPU` goroutines.
+- `internal/matcher/` — pre-compiled regex matching. 7 failure categories, ~40 patterns. Patterns defined in `patterns.go`.
+- `internal/analyzer/` — timestamp parsing, temporal chain grouping (5s window), root cause identification via causal weight ranking.
+- `internal/pipeline/` — orchestrates all stages, manages goroutine lifecycle and channel backpressure.
+- `internal/tui/` — bubbletea app with three views (Summary, List, Detail).
+- `cmd/logscraper/` — CLI entry point, flag parsing, output mode selection (TUI/JSON/plain).
+
+## Key Design Decisions
+
+- `LogEntry.Line` is `[]byte` (not string) to avoid per-line allocation. Only matched lines are copied.
+- Patterns are hardcoded Go structs, not config files. `--pattern-file` can be added later.
+- Timestamps parsed lazily — only on matched lines, not every line.
+- Root cause promotion: within a failure chain, the highest causal-weight match becomes root cause (OOM > DiskIO > Signal > DBLock > Panic > Timeout > Network).
+- Channel buffer sizes: chunks=2N, entries=4096, matches=1024.
 
 ## Key Design Goals
 

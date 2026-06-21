@@ -1,0 +1,12 @@
+2024-01-15T10:30:01Z INFO Starting application
+2024-01-15T10:30:02Z INFO Connected to database
+2024-01-15T10:30:03Z WARN High memory usage detected
+2024-01-15T10:30:04Z ERROR Out of memory: Killed process 4567 (app-worker)
+2024-01-15T10:30:04Z ERROR Cannot allocate memory
+2024-01-15T10:30:05Z ERROR connection refused to cache:6379
+2024-01-15T10:30:06Z ERROR context deadline exceeded
+2024-01-15T10:30:10Z INFO Application recovered
+2024-01-15T10:30:15Z ERROR deadlock detected in transaction 12345
+2024-01-15T10:30:15Z ERROR Lock wait timeout exceeded; try restarting transaction
+2024-01-15T10:30:20Z INFO Shutting down gracefully
+2024-01-15T10:30:21Z WARN signal: terminated
